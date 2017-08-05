@@ -28,6 +28,7 @@
 
 #include "list.h"
 #include "utils.h"
+#include "tree.h"                /*include freebsd kernel struct rb_tree*/
 /*@
  *@jackwu creates it
  *@school xust
@@ -64,29 +65,47 @@ typedef  struct __pthread_pool_node{
 
 
 typedef struct _task{
+      int value;
       void *arg;
       pthread_mutex_t mutex;
-      TAILQ_ENTRY(_task)entry;
+      //TAILQ_ENTRY(_task)entry;  /*old version*/
+      RB_ENTRY(_task)entry;
 }t_task;
 
 
 LIST_HEAD(_pthread_pool,__pthread_pool_node)pthread_pool\
 =LIST_HEAD_INITIALIZER(_pthread_pool);
 
-TAILQ_HEAD(_task_pool,_task)task_pool\
-=TAILQ_HEAD_INITIALIZER(task_pool);
+// TAILQ_HEAD(_task_pool,_task)task_pool\
+// =TAILQ_HEAD_INITIALIZER(task_pool);
+
+RB_HEAD(task_type,_task)task_pool\
+=RB_INITIALIZER(&task_pool);
+
+
 
 pthread_mutex_t  mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t   cond=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t  mutex_task=PTHREAD_MUTEX_INITIALIZER;
+
+
+
+int cmp(task_t *a,task_t *b){
+        return (a->value-b->value);
+}
+
+
+RB_PROTOTYPE(task_type,_task,entry,cmp);
+RB_GENERATE(task_type,_task,entry,cmp);
+
 
 static int task_count=0;//task queue 
 
 static pthread_pool_t *alloc_pool_node();
 static void create_pthread_pool();
 static void insert(int );
-static void insert_task(void *arg);
-static void  remove_task();
+static void insert_task(void *arg,int arg);
+static void  remove_task(t_task *st);
 
 
 static t_task* alloc_task(){
@@ -102,13 +121,13 @@ static t_task* alloc_task(){
             return item;
 }
 
-static void remove_task(){
+static void remove_task(t_task *st){
          t_task *item=NULL;
          t_task*pre=NULL;
-         TAILQ_FOREACH(item,&task_pool,entry){
+         RB_FOREACH(item,task_type,&task_pool){
                 pre=item;
                 pthread_mutex_trylock(&mutex_task);
-                TAILQ_REMOVE(&task_pool,item,entry);
+                RB_REMOVE(task_type,item,st);
                 if(task_count>0)
                     task_count--;
                 pthread_mutex_unlock(&mutex_task);
@@ -118,17 +137,18 @@ static void remove_task(){
                 break;
          }
 }
-static t_task *get_task(){
+static t_task *get_task(t_task *st){
          
-          return TAILQ_FIRST(&task_pool);
+          return RB_FIND(task_type,&pthread_pool,st);
 }
 
-static void insert_task(void *arg){
+static void insert_task(void *arg,int value){
         t_task *item=NULL;
         item=alloc_task();
         item->arg=arg;
+        item->value=value;
         pthread_mutex_trylock(&mutex_task);
-        TAILQ_INSERT_TAIL(&task_pool,item,entry); 
+        RB_INSERT(task_type,&task_pool,item); 
         task_count++;
         pthread_mutex_unlock(&mutex_task);
 
