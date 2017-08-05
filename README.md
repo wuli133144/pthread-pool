@@ -1,5 +1,8 @@
 ## About
-*this project about pthread pool
+*this project about pthread pool 
+*this project is version 2.0
+*add funcion handler like rb_tree 
+*make it better 
 
 ## Features
 * currence create many pthread object 
@@ -20,6 +23,26 @@ Run  ```make``` to compile and run tests.
 
 some code:
 ```
+--------------------------------------------------------------------------
+>typedef struct _task{
+>     int value;
+>      void *arg;
+>     pthread_mutex_t mutex;
+>      //TAILQ_ENTRY(_task)entry;  /*old version*/
+>      RB_ENTRY(_task)entry;
+>}t_task;
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+>int cmp(t_task *a,t_task *b){
+>       return (a->value-b->value);
+>}
+
+>RB_HEAD(task_type,_task)task_pool\
+>=RB_INITIALIZER(&task_pool);
+
+>RB_PROTOTYPE(task_type,_task,entry,cmp);
+>RB_GENERATE(task_type,_task,entry,cmp);
+--------------------------------------------------------------------------
 void init_pthreadpool(){
        pthread_t pid;
        pthread_pool_t *item=NULL;
