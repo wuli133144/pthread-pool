@@ -30,6 +30,7 @@ void init_pthreadpool(){
 
 }  
 ```
+```
    void destroy_pool(){
         pthread_pool_t *item=NULL;
         pthread_pool_t *pre=NULL;
@@ -45,14 +46,9 @@ void init_pthreadpool(){
 
 }
                           
-                     
 ```
 
 
-Output:
-```
- 
-```
 
 ## Contributing
 
