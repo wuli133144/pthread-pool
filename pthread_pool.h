@@ -79,8 +79,6 @@ LIST_HEAD(_pthread_pool,__pthread_pool_node)pthread_pool\
 // TAILQ_HEAD(_task_pool,_task)task_pool\
 // =TAILQ_HEAD_INITIALIZER(task_pool);
 
-RB_HEAD(task_type,_task)task_pool\
-=RB_INITIALIZER(&task_pool);
 
 
 
@@ -90,10 +88,12 @@ pthread_mutex_t  mutex_task=PTHREAD_MUTEX_INITIALIZER;
 
 
 
-int cmp(task_t *a,task_t *b){
+int cmp(t_task *a,t_task *b){
         return (a->value-b->value);
 }
 
+RB_HEAD(task_type,_task)task_pool\
+=RB_INITIALIZER(&task_pool);
 
 RB_PROTOTYPE(task_type,_task,entry,cmp);
 RB_GENERATE(task_type,_task,entry,cmp);
@@ -104,7 +104,7 @@ static int task_count=0;//task queue
 static pthread_pool_t *alloc_pool_node();
 static void create_pthread_pool();
 static void insert(int );
-static void insert_task(void *arg,int arg);
+static void insert_task(void *arg,int par);
 static void  remove_task(t_task *st);
 
 
@@ -139,7 +139,7 @@ static void remove_task(t_task *st){
 }
 static t_task *get_task(t_task *st){
          
-          return RB_FIND(task_type,&pthread_pool,st);
+          return RB_FIND(task_type,&task_pool,st);
 }
 
 static void insert_task(void *arg,int value){
@@ -195,7 +195,8 @@ void * function(void *arg){
                      pthread_cond_wait(&cond,&mutex); //如g_cond无信号,则阻塞
                   
                   }
-                  t_task *task=get_task();
+                  t_task st;
+                  t_task *task=get_task(&st);
                   // append_task(call,task->arg);
                   int connfd=*(int *)(task->arg);
                   char buf[100]={0};
@@ -203,7 +204,7 @@ void * function(void *arg){
                   read(connfd,buf,100);
                   write(connfd,buf,100);
                   close(connfd);
-                  remove_task();
+                  remove_task(task);
                   pthread_mutex_unlock(&mutex);   
 
          //to dosomthing
